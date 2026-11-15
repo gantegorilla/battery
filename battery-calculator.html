@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battery Energy & Cost Calculator</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0ea5e9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BatteryCalc">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --primary: #0ea5e9;
+      --primary-strong: #0284c7;
+      --primary-light: #e0f2fe;
+      --primary-gradient: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+      --accent: #22d3ee;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --error: #0f172a;
+      --error-light: #ffffff;
+      --warning: #0f172a;
+      --warning-light: #ffffff;
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --input-bg: #ffffff;
+      --focus-ring: rgba(14, 165, 233, 0.25);
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.08);
+      --shadow-xl: 0 20px 40px rgba(15, 23, 42, 0.1);
+      --radius: 16px;
+      --radius-lg: 20px;
+      --radius-sm: 10px;
+      --transition: 0.2s ease;
+      --transition-spring: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0f1a;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --text-light: #94a3b8;
+        --primary: #0ea5e9;
+        --primary-strong: #0284c7;
+        --primary-light: #e0f2fe;
+        --primary-gradient: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+        --accent: #22d3ee;
+        --border: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --error: #0f172a;
+        --error-light: #ffffff;
+        --warning: #0f172a;
+        --warning-light: #ffffff;
+        --success: #10b981;
+        --success-light: #ecfdf5;
+        --input-bg: #ffffff;
+        --focus-ring: rgba(14, 165, 233, 0.25);
+        --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+        --shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+        --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.08);
+        --shadow-xl: 0 20px 40px rgba(15, 23, 42, 0.1);
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 20px;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      right: -200px;
+      width: 400px;
+      height: 400px;
+      background: var(--primary-gradient);
+      border-radius: 50%;
+      opacity: 0.08;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -150px;
+      left: -150px;
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%);
+      border-radius: 50%;
+      opacity: 0.06;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .calculator-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+      z-index: 1;
+      border: 1px solid var(--border);
+      animation: slideUp 0.5s var(--transition-spring);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand-header {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #5cc9b2;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      text-align: center;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      text-align: center;
+      margin-bottom: 32px;
+      font-weight: 400;
+    }
+
+    .section {
+      margin-bottom: 24px;
+      animation: fadeIn 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .section:nth-child(1) { animation-delay: 0.1s; }
+    .section:nth-child(2) { animation-delay: 0.15s; }
+    .section:nth-child(3) { animation-delay: 0.2s; }
+    .results-section { animation-delay: 0.25s !important; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-light);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--primary-gradient);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--input-bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
+      overflow: hidden;
+    }
+
+    .input-group:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--focus-ring);
+      background: var(--card-bg);
+    }
+
+    .currency-prefix {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 0 16px;
+      background: transparent;
+      border-right: 1px solid var(--border);
+      min-width: 56px;
+      text-align: center;
+    }
+
+    .input-group:focus-within .currency-prefix {
+      color: var(--primary);
+      border-right-color: var(--primary);
+    }
+
+    input[type="number"] {
+      flex: 1;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      outline: none;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"]::placeholder {
+      color: var(--text-light);
+      font-weight: 400;
+    }
+
+    .unit-suffix {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-light);
+      padding: 0 16px;
+      background: transparent;
+      border-left: 1px solid var(--border);
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .input-hint {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      margin-top: 6px;
+      min-height: 18px;
+      transition: color var(--transition);
+    }
+
+    .input-hint.error {
+      color: var(--error);
+    }
+
+    .derived-price {
+      font-size: 0.75rem;
+      color: var(--primary);
+      margin-top: 6px;
+      min-height: 18px;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .derived-price.visible {
+      display: flex;
+    }
+
+    .derived-price svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-row > .input-wrapper {
+      flex: 1;
+    }
+
+    .results-section {
+      border-top: 1px solid var(--border);
+      padding-top: 28px;
+      margin-top: 8px;
+    }
+
+    .results-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-light);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .results-title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--primary-gradient);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .result-card {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px 16px;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary-gradient);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s var(--transition-spring);
+    }
+
+    .result-card.visible::before {
+      transform: scaleX(1);
+    }
+
+    .result-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .result-card.primary {
+      grid-column: span 2;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--card-bg) 100%);
+      border-color: var(--primary);
+    }
+
+    .result-card.primary::before {
+      background: var(--primary-gradient);
+    }
+
+    .result-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      margin-bottom: 8px;
+    }
+
+    .result-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .result-card.primary .result-value {
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .result-formula {
+      font-size: 0.65rem;
+      color: var(--text-light);
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      line-height: 1.4;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .result-card.primary .result-formula {
+      border-top-color: var(--primary);
+      opacity: 0.8;
+    }
+
+    .empty-state {
+      grid-column: span 2;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.9rem;
+      padding: 40px 20px;
+      background: var(--input-bg);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--input-bg);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .reset-btn:active {
+      transform: scale(0.98);
+    }
+
+    .reset-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px var(--focus-ring);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 480px) {
+      .calculator-card {
+        padding: 28px 20px;
+        border-radius: var(--radius);
+      }
+
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .result-card.primary {
+        grid-column: span 1;
+      }
+
+      .empty-state {
+        grid-column: span 1;
+      }
+
+      h1 { font-size: 1.4rem; }
+      .result-value { font-size: 1.6rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="calculator-card" role="main">
+    <div class="brand-header">AMPERAZE</div>
+    <h1>Battery Energy & Cost Calculator</h1>
+    <p class="subtitle">Estimate charging costs and battery level changes</p>
+
+    <!-- Energy Price -->
+    <section class="section" aria-labelledby="price-label">
+      <div class="section-title" id="price-label">Energy Price</div>
+      <div class="input-wrapper">
+        <label class="input-label" for="priceInput">Price per % of battery</label>
+        <div class="input-group" id="priceInputGroup">
+          <span class="currency-prefix" id="currencyPrefix">Rs.</span>
+          <input
+            type="number"
+            id="priceInput"
+            placeholder="e.g. 4.50"
+            step="0.01"
+            min="0"
+            aria-describedby="price-hint"
+          >
+        </div>
+        <p id="price-hint" class="input-hint" aria-live="polite">Enter your electricity cost per 1% charge</p>
+        <div class="derived-price" id="pricePerKwhDisplay" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          <span>= Rs. <span id="pricePerKwhValue"></span>/kWh</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Battery Size -->
+    <section class="section" aria-labelledby="battery-label">
+      <div class="section-title" id="battery-label">Battery Size</div>
+      <div class="input-wrapper">
+        <label class="input-label" for="batterySizeInput">Battery capacity</label>
+        <div class="input-group" id="batteryInputGroup">
+          <input
+            type="number"
+            id="batterySizeInput"
+            placeholder="e.g. 40"
+            step="0.1"
+            min="0.1"
+            value="40"
+            aria-describedby="battery-hint"
+          >
+          <span class="unit-suffix">kW</span>
+        </div>
+        <p id="battery-hint" class="input-hint" aria-live="polite">Enter your battery capacity in kW</p>
+      </div>
+    </section>
+
+    <!-- Target Charge Inputs -->
+    <section class="section" aria-labelledby="target-label">
+      <div class="section-title" id="target-label">Charge Target</div>
+      <div class="input-row">
+        <div class="input-wrapper">
+          <label class="input-label" for="currentPercentInput">Current %</label>
+          <div class="input-group" id="currentInputGroup">
+            <input
+              type="number"
+              id="currentPercentInput"
+              placeholder="0"
+              step="1"
+              min="0"
+              max="100"
+              aria-describedby="current-hint"
+            >
+            <span class="unit-suffix">%</span>
+          </div>
+          <p id="current-hint" class="input-hint" aria-live="polite">Current battery level</p>
+        </div>
+        <div class="input-wrapper">
+          <label class="input-label" for="targetPercentInput">Target %</label>
+          <div class="input-group" id="targetInputGroup">
+            <input
+              type="number"
+              id="targetPercentInput"
+              placeholder="100"
+              step="1"
+              min="0"
+              max="100"
+              aria-describedby="target-hint"
+            >
+            <span class="unit-suffix">%</span>
+          </div>
+          <p id="target-hint" class="input-hint" aria-live="polite">Desired battery level</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results-section" aria-labelledby="results-title" aria-live="polite">
+      <div class="results-title" id="results-title">Results</div>
+      <div class="result-grid" id="resultsContainer">
+        <div class="empty-state">Complete the inputs above to see results</div>
+      </div>
+      <button type="button" class="reset-btn" id="resetBtn" aria-label="Reset all inputs">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M21 12a9 9 0 1 1-9 9 9.75 9.75 0 0 1 6.74-2.74L21 16"/>
+        </svg>
+        Reset Calculator
+      </button>
+    </section>
+  </main>
+
+  <script>
+    // State
+    const state = {
+      pricePerPercent: null,
+      batterySize: 40,
+      currentPercent: null,
+      targetPercent: null,
+    };
+
+    // DOM Elements
+    const priceInput = document.getElementById('priceInput');
+    const currencyPrefix = document.getElementById('currencyPrefix');
+    const batterySizeInput = document.getElementById('batterySizeInput');
+    const currentPercentInput = document.getElementById('currentPercentInput');
+    const targetPercentInput = document.getElementById('targetPercentInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resetBtn = document.getElementById('resetBtn');
+    const pricePerKwhDisplay = document.getElementById('pricePerKwhDisplay');
+    const pricePerKwhValue = document.getElementById('pricePerKwhValue');
+
+    // Hint elements
+    const priceHint = document.getElementById('price-hint');
+    const batteryHint = document.getElementById('battery-hint');
+    const currentHint = document.getElementById('current-hint');
+    const targetHint = document.getElementById('target-hint');
+
+    // Utility functions
+    function formatCurrency(value) {
+      return currencyPrefix.textContent + ' ' + value.toFixed(2);
+    }
+
+    function formatNumber(value, decimals = 2) {
+      return value.toFixed(decimals);
+    }
+
+    function formatNumber1dp(value) {
+      return value.toFixed(1);
+    }
+
+    function showError(hintEl, message) {
+      hintEl.textContent = message;
+      hintEl.classList.add('error');
+    }
+
+    function hideError(hintEl, originalText) {
+      hintEl.textContent = originalText;
+      hintEl.classList.remove('error');
+    }
+
+    function validateNumber(input, min, max, allowEmpty = false) {
+      const value = input.value.trim();
+      if (value === '') {
+        if (allowEmpty) return { valid: true, value: null };
+        return { valid: false, value: null, message: 'This field is required' };
+      }
+      const num = parseFloat(value);
+      if (isNaN(num)) return { valid: false, value: null, message: 'Invalid number' };
+      if (num < min) return { valid: false, value: null, message: `Must be at least ${min}` };
+      if (max !== undefined && num > max) return { valid: false, value: null, message: `Must be at most ${max}` };
+      return { valid: true, value: num };
+    }
+
+    function getBatterySize() {
+      const validation = validateNumber(batterySizeInput, 0.1);
+      return validation.valid ? validation.value : null;
+    }
+
+    function calculate() {
+      const batterySize = getBatterySize();
+      const hasPrice = state.pricePerPercent !== null && state.pricePerPercent > 0;
+      const hasBattery = batterySize !== null && batterySize > 0;
+
+      // Calculate price per kWh from price per %
+      const pricePerKwh = hasPrice && hasBattery ? (state.pricePerPercent * 100) / batterySize : null;
+
+      // Clear previous errors
+      hideError(priceHint, 'Enter your electricity cost per 1% charge');
+      hideError(batteryHint, 'Enter your battery capacity in kW');
+      hideError(currentHint, 'Current battery level');
+      hideError(targetHint, 'Desired battery level');
+
+      // Show derived price per kWh
+      if (pricePerKwh !== null) {
+        pricePerKwhValue.textContent = formatNumber(pricePerKwh, 2);
+        pricePerKwhDisplay.classList.add('visible');
+      } else {
+        pricePerKwhDisplay.classList.remove('visible');
+      }
+
+      // Validate price
+      if (!hasPrice) {
+        showError(priceHint, 'Please enter the price per % of battery');
+      }
+
+      // Validate battery
+      if (!hasBattery) {
+        showError(batteryHint, 'Enter a battery size greater than 0');
+      }
+
+      // Validate percentages
+      const currentValidation = validateNumber(currentPercentInput, 0, 100);
+      const targetValidation = validateNumber(targetPercentInput, 0, 100);
+
+      if (!currentValidation.valid) {
+        showError(currentHint, currentValidation.message || 'Current percentage must be 0–100');
+      }
+      if (!targetValidation.valid) {
+        showError(targetHint, targetValidation.message || 'Target percentage must be 0–100');
+      }
+
+      let results = null;
+
+      if (currentValidation.valid && targetValidation.valid) {
+        if (targetValidation.value <= currentValidation.value) {
+          showError(targetHint, 'Target must be higher than current');
+        } else if (hasPrice && hasBattery) {
+          const percentNeeded = targetValidation.value - currentValidation.value;
+          const energyKwh = (percentNeeded / 100) * batterySize;
+          const cost = percentNeeded * state.pricePerPercent;
+
+          results = {
+            energy: { value: energyKwh, formula: `Energy = (${formatNumber(targetValidation.value)}% − ${formatNumber(currentValidation.value)}%) ÷ 100 × ${formatNumber(batterySize)} kW` },
+            cost: { value: cost, formula: `Cost = ${formatNumber(percentNeeded)}% × ${formatCurrency(state.pricePerPercent)}` },
+            percentAdded: { value: percentNeeded, formula: `Charge added = ${formatNumber(targetValidation.value)}% − ${formatNumber(currentValidation.value)}%` },
+            resultingPercent: { value: targetValidation.value, formula: `Final = target = ${formatNumber(targetValidation.value)}%` },
+          };
+        }
+      }
+
+      renderResults(results);
+    }
+
+    function renderResults(results) {
+      if (!results) {
+        resultsContainer.innerHTML = '<div class="empty-state">Complete the inputs above to see results</div>';
+        return;
+      }
+
+      const items = [];
+
+      // Energy Needed (primary)
+      items.push(`
+        <div class="result-card primary visible">
+          <div class="result-label">Energy Needed</div>
+          <div class="result-value">${formatNumber(results.energy.value)} kWh</div>
+          <div class="result-formula">${results.energy.formula}</div>
+        </div>
+      `);
+
+      // Cost
+      items.push(`
+        <div class="result-card visible">
+          <div class="result-label">Cost</div>
+          <div class="result-value">${formatCurrency(results.cost.value)}</div>
+          <div class="result-formula">${results.cost.formula}</div>
+        </div>
+      `);
+
+      // Battery % Added
+      items.push(`
+        <div class="result-card visible">
+          <div class="result-label">Charge Added</div>
+          <div class="result-value">${formatNumber1dp(results.percentAdded.value)}%</div>
+          <div class="result-formula">${results.percentAdded.formula}</div>
+        </div>
+      `);
+
+      // Resulting %
+      items.push(`
+        <div class="result-card visible">
+          <div class="result-label">Final Level</div>
+          <div class="result-value">${formatNumber1dp(results.resultingPercent.value)}%</div>
+          <div class="result-formula">${results.resultingPercent.formula}</div>
+        </div>
+      `);
+
+      resultsContainer.innerHTML = items.join('');
+
+      // Stagger animation
+      const cards = resultsContainer.querySelectorAll('.result-card');
+      cards.forEach((card, i) => {
+        card.style.animationDelay = `${i * 0.08}s`;
+      });
+    }
+
+    function reset() {
+      state.pricePerPercent = null;
+      state.batterySize = 40;
+      state.currentPercent = null;
+      state.targetPercent = null;
+
+      priceInput.value = '';
+      batterySizeInput.value = '40';
+      currentPercentInput.value = '';
+      targetPercentInput.value = '';
+
+      hideError(priceHint, 'Enter your electricity cost per 1% charge');
+      hideError(batteryHint, 'Enter your battery capacity in kW');
+      hideError(currentHint, 'Current battery level');
+      hideError(targetHint, 'Desired battery level');
+
+      pricePerKwhDisplay.classList.remove('visible');
+      resultsContainer.innerHTML = '<div class="empty-state">Complete the inputs above to see results</div>';
+    }
+
+    // Event Listeners
+    priceInput.addEventListener('input', () => {
+      const validation = validateNumber(priceInput, 0);
+      state.pricePerPercent = validation.valid ? validation.value : null;
+      calculate();
+    });
+
+    batterySizeInput.addEventListener('input', () => {
+      const validation = validateNumber(batterySizeInput, 0.1);
+      state.batterySize = validation.valid ? validation.value : null;
+      calculate();
+    });
+
+    currentPercentInput.addEventListener('input', () => {
+      const validation = validateNumber(currentPercentInput, 0, 100);
+      state.currentPercent = validation.valid ? validation.value : null;
+      calculate();
+    });
+
+    targetPercentInput.addEventListener('input', () => {
+      const validation = validateNumber(targetPercentInput, 0, 100);
+      state.targetPercent = validation.valid ? validation.value : null;
+      calculate();
+    });
+
+    resetBtn.addEventListener('click', reset);
+
+    // Initialize
+    calculate();
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((registration) => {
+            console.log('SW registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('SW registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
